@@ -8,11 +8,11 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-      # Step 1: Checkout your repository
+      # Step 1: Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # Step 2: Install required tools
+      # Step 2: Install dependencies
       - name: Install dependencies
         run: |
           sudo apt update
@@ -20,7 +20,7 @@ jobs:
             automake autoconf texinfo flex bison gawk nasm yasm pkg-config libtool \
             libgmp-dev libmpfr-dev libmpc-dev zlib1g-dev
 
-      # Step 3: Install gdown to download Google Drive files
+      # Step 3: Install gdown
       - name: Install gdown
         run: python3 -m pip install --quiet gdown
 
@@ -28,7 +28,7 @@ jobs:
       - name: Download Haiku source
         run: gdown https://drive.google.com/uc?id=1jN423vDbJzPb0G9rmgGDi_HhbE73r_iI -O haiku-source.zip
 
-      # Step 5: Unzip the source
+      # Step 5: Unzip Haiku source
       - name: Unzip Haiku source
         run: unzip haiku-source.zip -d haiku
 
@@ -50,7 +50,7 @@ jobs:
 
       # Step 8: Upload ISO artifact
       - name: Upload ISO artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: haiku-iso
           path: haiku/generated.x86_64/obj/images
