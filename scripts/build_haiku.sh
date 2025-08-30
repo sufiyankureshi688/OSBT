@@ -1,56 +1,24 @@
-name: Build Haiku from Google Drive ZIP
+#!/bin/bash
+set -e
 
-on:
-  workflow_dispatch:
+# File ID from Google Drive link
+FILE_ID="1jN423vDbJzPb0G9rmgGDi_HhbE73r_iI"
+DEST="haiku.zip"
 
-jobs:
-  build-haiku:
-    runs-on: ubuntu-22.04
+echo "Downloading Haiku source from Google Drive..."
+curl -L -c cookies.txt "https://drive.google.com/uc?export=download&id=${FILE_ID}" -o temp.html
+CONFIRM=$(grep -o 'confirm=[^&]*' temp.html | head -n 1 | cut -d= -f2)
+curl -L -b cookies.txt "https://drive.google.com/uc?export=download&confirm=${CONFIRM}&id=${FILE_ID}" -o "${DEST}"
 
-    steps:
-      # Step 1: Checkout repository
-      - name: Checkout repository
-        uses: actions/checkout@v4
+# Unzip source
+unzip -q "${DEST}"
+cd haiku
 
-      # Step 2: Install dependencies
-      - name: Install dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y python3-pip unzip git build-essential gcc g++ make \
-            automake autoconf texinfo flex bison gawk nasm yasm pkg-config libtool \
-            libgmp-dev libmpfr-dev libmpc-dev zlib1g-dev
+# Install build dependencies (Ubuntu runner)
+sudo apt-get update
+sudo apt-get install -y build-essential git automake autoconf \
+    flex bison gawk texinfo gcc-multilib g++-multilib zlib1g-dev
 
-      # Step 3: Install gdown
-      - name: Install gdown
-        run: python3 -m pip install --quiet gdown
-
-      # Step 4: Download Haiku source ZIP from Google Drive
-      - name: Download Haiku source
-        run: gdown https://drive.google.com/uc?id=1jN423vDbJzPb0G9rmgGDi_HhbE73r_iI -O haiku-source.zip
-
-      # Step 5: Unzip Haiku source
-      - name: Unzip Haiku source
-        run: unzip haiku-source.zip -d haiku
-
-      # Step 6: Clone buildtools if missing
-      - name: Clone Haiku buildtools
-        run: |
-          mkdir -p haiku-dev
-          cd haiku-dev
-          [ ! -d buildtools ] && git clone https://review.haiku-os.org/buildtools
-
-      # Step 7: Build Haiku
-      - name: Build Haiku
-        run: |
-          cd haiku
-          mkdir -p generated.x86_64
-          cd generated.x86_64
-          ../configure --cross-tools-source ../buildtools --build-cross-tools x86_64
-          jam -q @nightly-raw
-
-      # Step 8: Upload ISO artifact
-      - name: Upload ISO artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: haiku-iso
-          path: haiku/generated.x86_64/obj/images
+# Configure and build
+./configure --build-cross-tools x86_64
+jam -q haiku-image
